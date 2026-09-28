@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="Trilha de Abraão: jogo de trilha bíblico de Gênesis 12–50, com perguntas e episódios de Abraão, Isaque, Jacó e José.">
+<title>Trilha de Abraão</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+/* Layout: céu noturno de Gn 15:5 — tabuleiro em serpentina à esquerda, painel do jogo à direita; empilha no celular */
+:root{
+  --night:#121830; --night-2:#1b2345; --night-3:#26305a;
+  --ink:#ece6d3; --muted:#9aa0c2; --sand:#cdb98c; --star:#f2c14e;
+  --ok:#6fcf97; --bad:#ef7d6b;
+  --era-abraao:#f2c14e; --era-isaque:#5fb3a5; --era-jaco:#a597e0; --era-jose:#e39a74;
+  --display:"Alegreya SC", Georgia, "Times New Roman", serif;
+  --body:"Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{background:var(--night);color:var(--ink);margin:0}
+[hidden]{display:none!important}
+body{
+  font-family:var(--body);font-size:16px;line-height:1.5;
+  background:
+    radial-gradient(1px 1px at 12% 8%, var(--ink) 50%, transparent 51%),
+    radial-gradient(1px 1px at 38% 22%, var(--muted) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 72% 12%, var(--star) 50%, transparent 51%),
+    radial-gradient(1px 1px at 88% 34%, var(--ink) 50%, transparent 51%),
+    radial-gradient(1px 1px at 55% 5%, var(--muted) 50%, transparent 51%),
+    radial-gradient(1px 1px at 22% 40%, var(--muted) 50%, transparent 51%),
+    radial-gradient(ellipse at 50% -20%, var(--night-3), var(--night) 60%);
+  background-attachment:fixed;
+  padding:24px 16px 40px;
+}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(2rem,5vw,3.2rem);line-height:1;margin:0;letter-spacing:.02em;text-wrap:balance}
+h1 span{color:var(--star)}
+.sub{margin:.35rem 0 0;color:var(--muted);font-size:1rem}
+.hdr-actions{display:flex;gap:8px}
+button{font-family:var(--body);font-size:.95rem;cursor:pointer;border-radius:8px;border:1px solid var(--night-3);background:var(--night-2);color:var(--ink);padding:8px 14px}
+button:hover{border-color:var(--sand)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--star);outline-offset:2px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.primary{background:var(--star);color:var(--night);border-color:var(--star);font-weight:700}
+.primary:hover{filter:brightness(1.08);border-color:var(--star)}
+
+.game{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}
+@media (max-width:860px){.game{grid-template-columns:minmax(0,1fr)}}
+
+.eras{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 10px;padding:0;list-style:none;font-size:.85rem;color:var(--muted)}
+.eras li{display:flex;align-items:center;gap:6px}
+.eras i{width:10px;height:10px;border-radius:2px;display:inline-block}
+
+.board{display:grid;gap:6px;grid-template-columns:repeat(var(--cols),minmax(0,1fr))}
+.cell{position:relative;aspect-ratio:1/1;max-width:100%;border-radius:6px;background:var(--night-2);border:1px solid var(--night-3);border-top:4px solid var(--era);padding:4px 5px;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.cell .num{font-variant-numeric:tabular-nums;font-size:.72rem;color:var(--muted)}
+.cell .lbl{font-family:var(--display);font-size:.78rem;line-height:1.05;color:var(--ink);overflow-wrap:anywhere}
+.cell.q .lbl{color:var(--era);font-size:1.1rem}
+.cell.ev{background:color-mix(in srgb,var(--era) 14%,var(--night-2))}
+.cell.end,.cell.start{background:color-mix(in srgb,var(--star) 22%,var(--night-2));border-color:var(--star)}
+.toks{margin-top:auto;display:flex;flex-wrap:wrap;gap:3px}
+.tok{width:14px;height:14px;border-radius:50%;background:var(--c);border:2px solid var(--night);box-shadow:0 0 0 1px var(--c)}
+.tok.active{animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.25)}}
+@media (max-width:560px){.cell .lbl{font-size:.62rem}.cell.q .lbl{font-size:.9rem}.tok{width:10px;height:10px}}
+
+aside{display:flex;flex-direction:column;gap:14px}
+.panel{background:color-mix(in srgb,var(--night-2) 88%,transparent);border:1px solid var(--night-3);border-radius:10px;padding:14px}
+.panel h2{font-family:var(--display);font-size:1.05rem;margin:0 0 8px;letter-spacing:.04em;color:var(--sand)}
+.players{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.players li{display:grid;grid-template-columns:16px minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:6px 8px;border-radius:6px}
+.players li.cur{background:var(--night-3)}
+.players .dot{width:14px;height:14px;border-radius:50%;background:var(--c)}
+.players .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.players .pos,.players .st{font-variant-numeric:tabular-nums;font-size:.85rem;color:var(--muted)}
+.players .st{color:var(--star)}
+.skip{font-size:.7rem;color:var(--bad);margin-left:4px}
+
+.dice-row{display:flex;align-items:center;gap:14px}
+.die{width:64px;height:64px;border-radius:12px;background:var(--ink);display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:9px;gap:2px;flex:none}
+.die span{border-radius:50%;background:var(--night);transform:scale(.8);opacity:0}
+.die span.on{opacity:1}
+.die.roll{animation:shake .45s}
+@keyframes shake{25%{transform:rotate(-14deg)}75%{transform:rotate(12deg)}}
+.turn{font-size:.95rem}
+.turn b{font-family:var(--display);font-size:1.15rem}
+#rollBtn{width:100%;margin-top:10px;padding:12px;font-size:1.05rem}
+
+.log{list-style:none;margin:0;padding:0;font-size:.88rem;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.log li:first-child{color:var(--ink)}
+.rules{font-size:.88rem;color:var(--muted);margin:0;padding-left:1.1rem}
+.rules li+li{margin-top:3px}
+
+/* cartão */
+.overlay{position:fixed;inset:0;background:color-mix(in srgb,var(--night) 78%,transparent);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.card{width:min(460px,100%);background:var(--night-2);border:1px solid var(--night-3);border-top:6px solid var(--era,var(--star));border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px;max-height:90vh;overflow:auto}
+.card .kind{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--era,var(--star))}
+.card h3{font-family:var(--display);font-size:1.4rem;line-height:1.15;margin:0;text-wrap:balance}
+.card p{margin:0}
+.ref{font-size:.85rem;color:var(--sand)}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opts button{text-align:left;padding:10px 12px}
+.opts button.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,var(--night-2))}
+.opts button.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 18%,var(--night-2))}
+.fb{font-weight:700}
+.fb.ok{color:var(--ok)} .fb.no{color:var(--bad)}
+.effect{font-weight:700;color:var(--star)}
+.setup label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted)}
+.setup input,.setup select{font:inherit;font-size:1rem;background:var(--night);color:var(--ink);border:1px solid var(--night-3);border-radius:6px;padding:8px}
+.names{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+.rank{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.rank li{display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-radius:6px;background:var(--night)}
+.rank li:first-child{outline:1px solid var(--star)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Trilha de <span>Abraão</span></h1>
+      <p class="sub">Gênesis 12–50 · de Ur dos Caldeus até a terra de Gósen</p>
+    </div>
+    <div class="hdr-actions">
+      <button id="soundBtn" type="button" aria-pressed="false">Som: desligado</button>
+      <button id="newBtn" type="button">Novo jogo</button>
+    </div>
+  </header>
+
+  <div class="game">
+    <section aria-label="Tabuleiro">
+      <ul class="eras">
+        <li><i style="background:var(--era-abraao)"></i>Abraão · Gn 12–23</li>
+        <li><i style="background:var(--era-isaque)"></i>Isaque · Gn 24–27</li>
+        <li><i style="background:var(--era-jaco)"></i>Jacó · Gn 28–36</li>
+        <li><i style="background:var(--era-jose)"></i>José · Gn 37–50</li>
+      </ul>
+      <div class="board" id="board"></div>
+    </section>
+
+    <aside>
+      <div class="panel">
+        <div class="dice-row">
+          <div class="die" id="die" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="turn" id="turn" aria-live="polite"></div>
+        </div>
+        <button id="rollBtn" class="primary" type="button">Lançar o dado</button>
+      </div>
+      <div class="panel">
+        <h2>Peregrinos</h2>
+        <ul class="players" id="players"></ul>
+      </div>
+      <div class="panel">
+        <h2>Diário da jornada</h2>
+        <ul class="log" id="log"></ul>
+      </div>
+      <div class="panel">
+        <h2>Como jogar</h2>
+        <ol class="rules">
+          <li>Lance o dado e avance pela trilha.</li>
+          <li>Casa <b>?</b>: responda. Acertou, ganha 1 estrela.</li>
+          <li>Casa com nome: um episódio de Gênesis avança, recua, dá estrelas ou faz perder a vez.</li>
+          <li>Quem chega primeiro a Gósen ganha 3 estrelas e encerra a jornada. Vence quem tiver mais estrelas.</li>
+        </ol>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" hidden><div class="card" id="card" role="dialog" aria-modal="true"></div></div>
+
+<script>
+const LAST = 39;
+const ERAS = {
+  abraao:{name:"Abraão", color:"var(--era-abraao)"},
+  isaque:{name:"Isaque", color:"var(--era-isaque)"},
+  jaco:{name:"Jacó", color:"var(--era-jaco)"},
+  jose:{name:"José", color:"var(--era-jose)"}
+};
+function eraOf(i){ return i<=14?"abraao": i<=21?"isaque": i<=30?"jaco":"jose"; }
+
+// Casas especiais: move = avançar/recuar, stars = ganhar estrelas, skip = perder a vez
+const EVENTS = {
+  2:{t:"Chamado", title:"Sai da tua terra", text:"O Senhor chama Abrão para ir à terra que Ele mostraria, com a promessa de fazer dele uma grande nação.", ref:"Gn 12:1-4", move:2},
+  5:{t:"Fome", title:"Fome em Canaã", text:"Abrão desce ao Egito por causa da fome e ali mente sobre Sarai.", ref:"Gn 12:10-13", move:-2},
+  8:{t:"Ló", title:"Não haja contenda", text:"Abrão deixa Ló escolher primeiro a terra, para manter a paz entre os parentes.", ref:"Gn 13:8-9", stars:1},
+  11:{t:"Estrelas", title:"Conta as estrelas", text:"Deus leva Abrão para fora e promete uma descendência como as estrelas. Abrão creu, e isso lhe foi imputado como justiça.", ref:"Gn 15:5-6", stars:2},
+  13:{t:"Agar", title:"Apressando a promessa", text:"Sarai entrega Agar a Abrão para ter filhos por meio dela. A pressa gera conflito na casa.", ref:"Gn 16:1-4", skip:true},
+  14:{t:"Moriá", title:"O Senhor proverá", text:"No monte Moriá, Deus provê um carneiro no lugar de Isaque.", ref:"Gn 22:13-14", move:3},
+  17:{t:"Poço", title:"Oração respondida", text:"Antes de o servo terminar de orar, Rebeca chega ao poço com seu cântaro.", ref:"Gn 24:15", move:2},
+  20:{t:"Guisado", title:"A primogenitura vendida", text:"Esaú despreza o direito de primogenitura e o troca por um prato de lentilhas.", ref:"Gn 25:29-34", move:-2},
+  23:{t:"Betel", title:"A escada de Jacó", text:"Em sonho, Jacó vê uma escada que chega ao céu, e Deus renova com ele a promessa feita a Abraão.", ref:"Gn 28:12-15", move:3},
+  26:{t:"Labão", title:"O enganador enganado", text:"Depois de sete anos de trabalho por Raquel, Jacó recebe Lia na noite do casamento.", ref:"Gn 29:25", skip:true},
+  29:{t:"Jaboque", title:"Não te deixarei ir", text:"Jacó luta até o amanhecer e recebe um novo nome: Israel.", ref:"Gn 32:24-28", stars:1},
+  32:{t:"Cisterna", title:"José vendido", text:"Os irmãos lançam José numa cisterna e o vendem aos ismaelitas.", ref:"Gn 37:23-28", move:-3},
+  35:{t:"Prisão", title:"Acusado injustamente", text:"José é lançado na prisão, mas o Senhor era com ele.", ref:"Gn 39:20-21", skip:true},
+  37:{t:"Faraó", title:"Governador do Egito", text:"José interpreta os sonhos de Faraó e é posto sobre toda a terra do Egito.", ref:"Gn 41:39-41", move:2}
+};
+
+const QUESTIONS = {
+  abraao:[
+    {q:"De qual cidade Abrão partiu, aos 75 anos, obedecendo ao chamado de Deus?", o:["Harã","Nínive","Babel"], a:0, ref:"Gn 12:4"},
+    {q:"Quantos anos Abrão tinha quando saiu de Harã?", o:["40","75","100"], a:1, ref:"Gn 12:4"},
+    {q:"Qual sobrinho acompanhou Abrão na viagem?", o:["Labão","Naor","Ló"], a:2, ref:"Gn 12:5"},
+    {q:"Que região Ló escolheu para morar?", o:["A campina do Jordão","O deserto de Berseba","As montanhas de Betel"], a:0, ref:"Gn 13:10-11"},
+    {q:"Quem era rei de Salém e sacerdote do Deus Altíssimo e abençoou Abrão?", o:["Abimeleque","Melquisedeque","Faraó"], a:1, ref:"Gn 14:18-19"},
+    {q:"Qual foi o novo nome dado a Sarai?", o:["Sara","Rebeca","Raquel"], a:0, ref:"Gn 17:15"},
+    {q:"Qual foi o sinal da aliança de Deus com Abraão?", o:["O arco-íris","O sábado","A circuncisão"], a:2, ref:"Gn 17:10-11"},
+    {q:"Onde Abraão recebeu os três visitantes?", o:["Junto aos carvalhais de Manre","Às margens do Nilo","Em Sodoma"], a:0, ref:"Gn 18:1-2"},
+    {q:"Quem olhou para trás e virou uma estátua de sal?", o:["A filha de Ló","A mulher de Ló","Agar"], a:1, ref:"Gn 19:26"},
+    {q:"Para onde Deus mandou Abraão levar Isaque?", o:["Terra de Moriá","Monte Sinai","Terra de Gósen"], a:0, ref:"Gn 22:2"},
+    {q:"Onde Sara foi sepultada?", o:["Em Betel","Na caverna de Macpela","Em Belém"], a:1, ref:"Gn 23:19"}
+  ],
+  isaque:[
+    {q:"Quem Abraão enviou para buscar uma esposa para Isaque?", o:["Ismael","Ló","O servo mais velho de sua casa"], a:2, ref:"Gn 24:2-4"},
+    {q:"Qual sinal o servo pediu para reconhecer a moça certa?", o:["Que ela desse água também aos camelos","Que ela usasse um véu","Que ela soubesse o nome de Abraão"], a:0, ref:"Gn 24:14"},
+    {q:"Quem era o irmão de Rebeca?", o:["Naor","Labão","Betuel"], a:1, ref:"Gn 24:29"},
+    {q:"Quais eram os filhos gêmeos de Isaque e Rebeca?", o:["Caim e Abel","Esaú e Jacó","Rúben e Simeão"], a:1, ref:"Gn 25:24-26"},
+    {q:"Que nome Isaque deu ao poço pelo qual não houve contenda?", o:["Reobote","Eseque","Sitna"], a:0, ref:"Gn 26:22"},
+    {q:"Como Jacó se disfarçou para receber a bênção de Isaque?", o:["Com um manto de Labão","Com peles de cabrito nas mãos e no pescoço","Com óleo no cabelo"], a:1, ref:"Gn 27:16"}
+  ],
+  jaco:[
+    {q:"Que nome Jacó deu ao lugar onde sonhou com a escada?", o:["Peniel","Betel","Siquém"], a:1, ref:"Gn 28:19"},
+    {q:"Quantos anos Jacó serviu por Raquel, que lhe pareceram poucos dias?", o:["Sete","Doze","Quarenta"], a:0, ref:"Gn 29:20"},
+    {q:"Qual foi o novo nome dado a Jacó?", o:["Abraão","Judá","Israel"], a:2, ref:"Gn 32:28"},
+    {q:"Que nome Jacó deu ao lugar onde viu Deus face a face?", o:["Peniel","Maanaim","Hebrom"], a:0, ref:"Gn 32:30"},
+    {q:"Quantos filhos homens Jacó teve?", o:["Sete","Dez","Doze"], a:2, ref:"Gn 35:22"},
+    {q:"Qual filho nasceu no caminho de Efrata, quando Raquel morreu?", o:["José","Benjamim","Levi"], a:1, ref:"Gn 35:16-19"}
+  ],
+  jose:[
+    {q:"Qual presente especial Jacó deu a José?", o:["Uma túnica","Um anel","Um cajado"], a:0, ref:"Gn 37:3"},
+    {q:"Por quanto José foi vendido aos ismaelitas?", o:["Trinta moedas de ouro","Vinte siclos de prata","Um camelo"], a:1, ref:"Gn 37:28"},
+    {q:"Na casa de qual oficial de Faraó José serviu?", o:["Potifar","Zafenate","Ramsés"], a:0, ref:"Gn 39:1"},
+    {q:"O que significavam as sete vacas gordas e as sete magras?", o:["Sete reis e sete profetas","Sete anos de fartura e sete de fome","Sete pragas"], a:1, ref:"Gn 41:29-30"},
+    {q:"Qual nome egípcio Faraó deu a José?", o:["Zafenate-Paneia","Potífera","Beltessazar"], a:0, ref:"Gn 41:45"},
+    {q:"Onde foi encontrado o copo de prata de José?", o:["No saco de Rúben","No saco de Benjamim","Na tenda de Judá"], a:1, ref:"Gn 44:12"},
+    {q:"Em Gn 50:20, José diz que os irmãos intentaram o mal, mas Deus o tornou em quê?", o:["Juízo","Bem","Riqueza"], a:1, ref:"Gn 50:20"},
+    {q:"Em que região do Egito a família de Jacó foi morar?", o:["Gósen","Tebas","Mênfis"], a:0, ref:"Gn 47:6"}
+  ]
+};
+
+const COLORS = ["#f2c14e","#6fb7ff","#ef7d6b","#8fe0a0"];
+const $ = s => document.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : ms));
+
+let S;
+function freshState(names){
+  return {
+    players: names.map((n,i)=>({name:n, color:COLORS[i], pos:0, stars:0, skip:false})),
+    turn:0, phase:"roll", die:1, log:["A jornada começa em Ur dos Caldeus (Gn 11:31)."], used:[]
+  };
+}
+
+/* ---------- Tabuleiro em serpentina ---------- */
+function cols(){ return matchMedia("(max-width:560px)").matches ? 5 : 8; }
+function cellPos(i, c){
+  const r = Math.floor(i / c), k = i % c;
+  return {row:r+1, col: r % 2 === 0 ? k+1 : c-k};   // linhas pares vão →, ímpares voltam ←
+}
+function renderBoard(){
+  const c = cols(), b = $("#board");
+  b.style.setProperty("--cols", c);
+  b.innerHTML = "";
+  for(let i=0;i<=LAST;i++){
+    const d = document.createElement("div"), p = cellPos(i,c), ev = EVENTS[i];
+    d.className = "cell " + (i===0?"start": i===LAST?"end": ev?"ev":"q");
+    d.style.gridRow = p.row; d.style.gridColumn = p.col;
+    d.style.setProperty("--era", ERAS[eraOf(i)].color);
+    const lbl = i===0 ? "Ur" : i===LAST ? "Gósen" : ev ? ev.t : "?";
+    d.innerHTML = `<span class="num">${i}</span><span class="lbl">${lbl}</span><div class="toks" id="t${i}"></div>`;
+    d.title = i===0 ? "Partida: Ur dos Caldeus" : i===LAST ? "Chegada: terra de Gósen" : ev ? `${ev.title} (${ev.ref})` : `Pergunta: era de ${ERAS[eraOf(i)].name}`;
+    b.appendChild(d);
+  }
+  renderTokens();
+}
+function renderTokens(){
+  document.querySelectorAll(".toks").forEach(t=>t.innerHTML="");
+  S.players.forEach((p,i)=>{
+    const t = document.createElement("span");
+    t.className = "tok" + (i===S.turn && S.phase!=="over" ? " active":"");
+    t.style.setProperty("--c", p.color); t.title = p.name;
+    $("#t"+p.pos).appendChild(t);
+  });
+}
+
+/* ---------- Painel ---------- */
+const PIPS = {1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+function renderDie(v){ [...$("#die").children].forEach((s,i)=>s.classList.toggle("on", PIPS[v].includes(i))); }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function renderPanel(){
+  const cur = S.players[S.turn];
+  $("#turn").innerHTML = S.phase==="over" ? "<b>Jornada encerrada</b>" : `Vez de<br><b style="color:${cur.color}">${esc(cur.name)}</b>`;
+  $("#rollBtn").disabled = S.phase!=="roll";
+  $("#players").innerHTML = S.players.map((p,i)=>`<li class="${i===S.turn&&S.phase!=="over"?"cur":""}" style="--c:${p.color}">
+      <span class="dot"></span><span class="nm">${esc(p.name)}${p.skip?'<span class="skip">perde a vez</span>':""}</span>
+      <span class="pos">casa ${p.pos}</span><span class="st">★ ${p.stars}</span></li>`).join("");
+  $("#log").innerHTML = S.log.slice(0,6).map(l=>`<li>${esc(l)}</li>`).join("");
+  renderDie(S.die);
+}
+function log(m){ S.log.unshift(m); }
+function render(){ renderTokens(); renderPanel(); }
+
+/* ---------- Som (WebAudio, só após clique) ---------- */
+let audio=null, soundOn=false;
+function beep(f=440, d=.12, type="sine"){
+  if(!soundOn) return;
+  try{
+    audio = audio || new (window.AudioContext||window.webkitAudioContext)();
+    const o=audio.createOscillator(), g=audio.createGain();
+    o.type=type; o.frequency.value=f; g.gain.setValueAtTime(.12,audio.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+d);
+    o.connect(g).connect(audio.destination); o.start(); o.stop(audio.currentTime+d);
+  }catch(e){}
+}
+
+/* ---------- Fluxo do jogo ---------- */
+async function roll(){
+  if(S.phase!=="roll") return;
+  S.phase="moving";
+  const v = 1 + Math.floor(Math.random()*6);
+  const die=$("#die"); die.classList.remove("roll"); void die.offsetWidth; die.classList.add("roll");
+  for(let k=0;k<6;k++){ renderDie(1+Math.floor(Math.random()*6)); await sleep(60); }
+  S.die=v; renderPanel(); beep(300,.08,"square");
+  const p = S.players[S.turn];
+  log(`${p.name} tirou ${v}.`);
+  await walk(p, v);
+  land(p);
+}
+async function walk(p, steps){
+  const dir = Math.sign(steps);
+  for(let k=0;k<Math.abs(steps);k++){
+    const n = p.pos + dir;
+    if(n<0 || n>LAST) break;
+    p.pos = n; render(); beep(dir>0?520:260,.06); await sleep(220);
+  }
+}
+function land(p){
+  if(p.pos===LAST) return finish(p);
+  const ev = EVENTS[p.pos];
+  ev ? showEvent(p, ev) : showQuestion(p, eraOf(p.pos));
+}
+function pickQuestion(era){
+  let pool = QUESTIONS[era].map((q,i)=>era+i).filter(id=>!S.used.includes(id));
+  if(!pool.length){ S.used = S.used.filter(id=>!id.startsWith(era)); pool = QUESTIONS[era].map((q,i)=>era+i); }
+  const id = pool[Math.floor(Math.random()*pool.length)];
+  S.used.push(id);
+  return QUESTIONS[era][+id.slice(era.length)];
+}
+function openCard(html, eraColor){
+  const c=$("#card"); c.style.setProperty("--era", eraColor); c.innerHTML=html;
+  $("#overlay").hidden=false; const f=c.querySelector("button"); f && f.focus();
+}
+function closeCard(){ $("#overlay").hidden=true; }
+
+function showQuestion(p, era){
+  S.phase="card"; renderPanel();
+  const q = pickQuestion(era);
+  openCard(`<span class="kind">Pergunta · era de ${ERAS[era].name}</span>
+    <h3>${esc(q.q)}</h3>
+    <div class="opts">${q.o.map((o,i)=>`<button type="button" data-i="${i}">${esc(o)}</button>`).join("")}</div>
+    <p id="fb" hidden></p>
+    <button type="button" class="primary" id="goOn" hidden>Continuar</button>`, ERAS[era].color);
+  const btns=[...document.querySelectorAll(".opts button")];
+  btns.forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.i, ok = i===q.a;
+    btns.forEach(x=>{x.disabled=true;}); btns[q.a].classList.add("right"); if(!ok) b.classList.add("wrong");
+    const fb=$("#fb"); fb.hidden=false;
+    fb.innerHTML = `<span class="fb ${ok?"ok":"no"}">${ok?"Correto! +1 estrela.":"Não foi dessa vez."}</span> <span class="ref">Leia ${q.ref}.</span>`;
+    if(ok){ p.stars++; beep(660,.1); setTimeout(()=>beep(880,.15),110); log(`${p.name} acertou (${q.ref}) e ganhou 1 estrela.`); }
+    else { beep(180,.2,"triangle"); log(`${p.name} errou. Resposta: ${q.o[q.a]} (${q.ref}).`); }
+    renderPanel();
+    const g=$("#goOn"); g.hidden=false; g.focus(); g.onclick=()=>{ closeCard(); nextTurn(); };
+  });
+}
+function effectText(ev){
+  if(ev.move) return ev.move>0 ? `Avance ${ev.move} casas.` : `Volte ${-ev.move} casas.`;
+  if(ev.stars) return `Ganhe ${ev.stars} estrela${ev.stars>1?"s":""}.`;
+  if(ev.skip) return "Perca a próxima jogada.";
+  return "";
+}
+function showEvent(p, ev){
+  S.phase="card"; renderPanel();
+  openCard(`<span class="kind">Episódio · ${ev.ref}</span>
+    <h3>${esc(ev.title)}</h3><p>${esc(ev.text)}</p>
+    <p class="effect">${effectText(ev)}</p>
+    <button type="button" class="primary" id="goOn">Continuar</button>`, ERAS[eraOf(p.pos)].color);
+  $("#goOn").onclick = async ()=>{
+    closeCard();
+    log(`${p.name}: ${ev.title} (${ev.ref}). ${effectText(ev)}`);
+    if(ev.stars){ p.stars+=ev.stars; beep(880,.15); }
+    if(ev.skip){ p.skip=true; }
+    if(ev.move){ S.phase="moving"; await walk(p, ev.move); if(p.pos===LAST) return finish(p); }
+    nextTurn();
+  };
+}
+function nextTurn(){
+  const n=S.players.length;
+  S.turn=(S.turn+1)%n;
+  for(let k=0;k<n && S.players[S.turn].skip;k++){
+    S.players[S.turn].skip=false;
+    log(`${S.players[S.turn].name} perdeu a vez.`);
+    if(n>1) S.turn=(S.turn+1)%n;
+  }
+  S.phase="roll"; render();
+}
+function finish(p){
+  p.stars+=3; S.phase="over";
+  log(`${p.name} chegou a Gósen e ganhou 3 estrelas.`);
+  render();
+  const rank=[...S.players].sort((a,b)=>b.stars-a.stars || b.pos-a.pos);
+  [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.18),i*140));
+  openCard(`<span class="kind">Chegada · Gn 47:6</span>
+    <h3>${esc(p.name)} chegou à terra de Gósen</h3>
+    <p>“Vós bem intentastes mal contra mim; porém Deus o tornou em bem” (Gn 50:20).</p>
+    <ol class="rank">${rank.map(r=>`<li><span style="color:${r.color}">${esc(r.name)}</span><span class="st">★ ${r.stars}</span></li>`).join("")}</ol>
+    <p><b>${esc(rank[0].name)}</b> venceu com mais estrelas.</p>
+    <button type="button" class="primary" id="goOn">Jogar de novo</button>`, "var(--star)");
+  $("#goOn").onclick=()=>{ closeCard(); showSetup(); };
+}
+
+/* ---------- Novo jogo ---------- */
+function showSetup(){
+  const prev = S ? S.players.map(p=>p.name) : [];
+  openCard(`<span class="kind">Novo jogo</span><h3>Quem vai peregrinar?</h3>
+    <form class="setup" id="setupForm" style="display:flex;flex-direction:column;gap:12px">
+      <label for="nPl">Número de jogadores
+        <select id="nPl">${[1,2,3,4].map(n=>`<option ${n===(prev.length||2)?"selected":""}>${n}</option>`).join("")}</select></label>
+      <div class="names" id="names"></div>
+      <button type="submit" class="primary">Começar a jornada</button>
+    </form>`, "var(--star)");
+  const drawNames=()=>{
+    const n=+$("#nPl").value, cur=[...document.querySelectorAll("#names input")].map(i=>i.value);
+    $("#names").innerHTML = Array.from({length:n},(_,i)=>`<label for="nm${i}" style="color:${COLORS[i]}">Jogador ${i+1}
+      <input id="nm${i}" maxlength="18" value="${esc(cur[i]||prev[i]||"Jogador "+(i+1))}"></label>`).join("");
+  };
+  drawNames(); $("#nPl").onchange=drawNames;
+  $("#setupForm").onsubmit=e=>{
+    e.preventDefault();
+    const names=[...document.querySelectorAll("#names input")].map((i,k)=>i.value.trim()||"Jogador "+(k+1));
+    S=freshState(names); closeCard(); render();
+  };
+}
+
+/* ---------- Início ---------- */
+function start(data){
+  S = data && data.S ? data.S : freshState(["Jogador 1","Jogador 2"]);
+  if(S.phase!=="over") S.phase="roll";
+  renderBoard(); render();
+  matchMedia("(max-width:560px)").addEventListener("change", renderBoard);
+  $("#rollBtn").onclick=roll;
+  $("#newBtn").onclick=showSetup;
+  $("#soundBtn").onclick=e=>{ soundOn=!soundOn; e.target.textContent="Som: "+(soundOn?"ligado":"desligado"); e.target.setAttribute("aria-pressed",soundOn); beep(600,.08); };
+}
+start({});
+</script>
+</body>
+</html>
