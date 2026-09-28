@@ -1,5 +1,7 @@
 # Trilha de Abraão
 
+![Trilha de Abraão](screenshot.png)
+
 Jogo de trilha bíblico sobre **Gênesis 12–50**. Os jogadores partem de Ur dos Caldeus e caminham até a terra de Gósen, passando pelas histórias de Abraão, Isaque, Jacó e José.
 
 **▶ Jogar:** https://davimatfacil.github.io/trilha-de-abraao/
