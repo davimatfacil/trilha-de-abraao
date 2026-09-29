@@ -17,6 +17,7 @@ Jogo de trilha bíblico sobre **Gênesis 12–50**. Os jogadores partem de Ur do
   - perder a vez: Agar (Gn 16), Labão (Gn 29), a prisão de José (Gn 39)
   - ganhar estrelas: a promessa das estrelas (Gn 15), a luta no Jaboque (Gn 32)
 - Quem chega primeiro a Gósen ganha +3 ★ e encerra a jornada. **Vence quem tiver mais estrelas.**
+- **Reiniciar** recomeça com os mesmos jogadores; **Novo jogo** permite trocar nomes e quantidade. Todo cartão fecha no **×** ou com a tecla **Esc**.
 
 ## As quatro eras
 

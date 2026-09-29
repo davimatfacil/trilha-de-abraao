@@ -98,7 +98,12 @@ aside{display:flex;flex-direction:column;gap:14px}
 /* cartão */
 .overlay{position:fixed;inset:0;background:color-mix(in srgb,var(--night) 78%,transparent);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
 .card{width:min(460px,100%);background:var(--night-2);border:1px solid var(--night-3);border-top:6px solid var(--era,var(--star));border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px;max-height:90vh;overflow:auto}
-.card .kind{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--era,var(--star))}
+.card{position:relative}
+.xbtn{position:absolute;top:10px;right:10px;width:36px;height:36px;padding:0;border-radius:50%;font-size:1.4rem;line-height:1;color:var(--muted)}
+.xbtn:hover{color:var(--ink)}
+.btn-row{display:flex;flex-wrap:wrap;gap:8px}
+.btn-row button{flex:1 1 140px}
+.card .kind{padding-right:44px;font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--era,var(--star))}
 .card h3{font-family:var(--display);font-size:1.4rem;line-height:1.15;margin:0;text-wrap:balance}
 .card p{margin:0}
 .ref{font-size:.85rem;color:var(--sand)}
@@ -127,6 +132,7 @@ aside{display:flex;flex-direction:column;gap:14px}
     </div>
     <div class="hdr-actions">
       <button id="soundBtn" type="button" aria-pressed="false">Som: desligado</button>
+      <button id="restartBtn" type="button">Reiniciar</button>
       <button id="newBtn" type="button">Novo jogo</button>
     </div>
   </header>
@@ -295,6 +301,7 @@ function renderPanel(){
   const cur = S.players[S.turn];
   $("#turn").innerHTML = S.phase==="over" ? "<b>Jornada encerrada</b>" : `Vez de<br><b style="color:${cur.color}">${esc(cur.name)}</b>`;
   $("#rollBtn").disabled = S.phase!=="roll";
+  $("#restartBtn").disabled = $("#newBtn").disabled = S.phase==="moving";
   $("#players").innerHTML = S.players.map((p,i)=>`<li class="${i===S.turn&&S.phase!=="over"?"cur":""}" style="--c:${p.color}">
       <span class="dot"></span><span class="nm">${esc(p.name)}${p.skip?'<span class="skip">perde a vez</span>':""}</span>
       <span class="pos">casa ${p.pos}</span><span class="st">★ ${p.stars}</span></li>`).join("");
@@ -350,11 +357,18 @@ function pickQuestion(era){
   S.used.push(id);
   return QUESTIONS[era][+id.slice(era.length)];
 }
-function openCard(html, eraColor){
-  const c=$("#card"); c.style.setProperty("--era", eraColor); c.innerHTML=html;
-  $("#overlay").hidden=false; const f=c.querySelector("button"); f && f.focus();
+// onClose: o que acontece ao fechar pelo X ou pela tecla Esc (cada cartão decide)
+let onCardClose = null;
+function openCard(html, eraColor, onClose){
+  const c=$("#card"); c.style.setProperty("--era", eraColor);
+  c.innerHTML = `<button type="button" class="xbtn" aria-label="Fechar">×</button>` + html;
+  onCardClose = onClose || closeCard;
+  c.querySelector(".xbtn").onclick = ()=>onCardClose();
+  $("#overlay").hidden=false;
+  const f=c.querySelector("button:not(.xbtn), input, select"); f && f.focus();
 }
-function closeCard(){ $("#overlay").hidden=true; }
+function closeCard(){ $("#overlay").hidden=true; onCardClose=null; }
+document.addEventListener("keydown", e=>{ if(e.key==="Escape" && onCardClose) onCardClose(); });
 
 function showQuestion(p, era){
   S.phase="card"; renderPanel();
@@ -363,9 +377,13 @@ function showQuestion(p, era){
     <h3>${esc(q.q)}</h3>
     <div class="opts">${q.o.map((o,i)=>`<button type="button" data-i="${i}">${esc(o)}</button>`).join("")}</div>
     <p id="fb" hidden></p>
-    <button type="button" class="primary" id="goOn" hidden>Continuar</button>`, ERAS[era].color);
+    <button type="button" class="primary" id="goOn" hidden>Continuar</button>`, ERAS[era].color,
+    ()=>{ if(!answered) log(`${p.name} pulou a pergunta.`); done(); });
+  let answered=false;
+  const done=()=>{ closeCard(); nextTurn(); };
   const btns=[...document.querySelectorAll(".opts button")];
   btns.forEach(b=>b.onclick=()=>{
+    answered=true;
     const i=+b.dataset.i, ok = i===q.a;
     btns.forEach(x=>{x.disabled=true;}); btns[q.a].classList.add("right"); if(!ok) b.classList.add("wrong");
     const fb=$("#fb"); fb.hidden=false;
@@ -373,7 +391,7 @@ function showQuestion(p, era){
     if(ok){ p.stars++; beep(660,.1); setTimeout(()=>beep(880,.15),110); log(`${p.name} acertou (${q.ref}) e ganhou 1 estrela.`); }
     else { beep(180,.2,"triangle"); log(`${p.name} errou. Resposta: ${q.o[q.a]} (${q.ref}).`); }
     renderPanel();
-    const g=$("#goOn"); g.hidden=false; g.focus(); g.onclick=()=>{ closeCard(); nextTurn(); };
+    const g=$("#goOn"); g.hidden=false; g.focus(); g.onclick=done;
   });
 }
 function effectText(ev){
@@ -387,8 +405,11 @@ function showEvent(p, ev){
   openCard(`<span class="kind">Episódio · ${ev.ref}</span>
     <h3>${esc(ev.title)}</h3><p>${esc(ev.text)}</p>
     <p class="effect">${effectText(ev)}</p>
-    <button type="button" class="primary" id="goOn">Continuar</button>`, ERAS[eraOf(p.pos)].color);
-  $("#goOn").onclick = async ()=>{
+    <button type="button" class="primary" id="goOn">Continuar</button>`, ERAS[eraOf(p.pos)].color, ()=>apply());
+  // fechar pelo X também aplica o efeito: o episódio faz parte da regra
+  let applied=false;
+  const apply = async ()=>{
+    if(applied) return; applied=true;
     closeCard();
     log(`${p.name}: ${ev.title} (${ev.ref}). ${effectText(ev)}`);
     if(ev.stars){ p.stars+=ev.stars; beep(880,.15); }
@@ -396,6 +417,7 @@ function showEvent(p, ev){
     if(ev.move){ S.phase="moving"; await walk(p, ev.move); if(p.pos===LAST) return finish(p); }
     nextTurn();
   };
+  $("#goOn").onclick = apply;
 }
 function nextTurn(){
   const n=S.players.length;
@@ -418,8 +440,30 @@ function finish(p){
     <p>“Vós bem intentastes mal contra mim; porém Deus o tornou em bem” (Gn 50:20).</p>
     <ol class="rank">${rank.map(r=>`<li><span style="color:${r.color}">${esc(r.name)}</span><span class="st">★ ${r.stars}</span></li>`).join("")}</ol>
     <p><b>${esc(rank[0].name)}</b> venceu com mais estrelas.</p>
-    <button type="button" class="primary" id="goOn">Jogar de novo</button>`, "var(--star)");
-  $("#goOn").onclick=()=>{ closeCard(); showSetup(); };
+    <div class="btn-row">
+      <button type="button" class="primary" id="goOn">Jogar de novo</button>
+      <button type="button" id="chgPl">Trocar jogadores</button>
+    </div>`, "var(--star)");
+  $("#goOn").onclick=()=>{ closeCard(); restartGame(); };
+  $("#chgPl").onclick=showSetup;
+}
+
+/* ---------- Reiniciar ---------- */
+function restartGame(){
+  S = freshState(S.players.map(p=>p.name));   // mesmos jogadores, tudo zerado
+  render();
+}
+function askRestart(){
+  if(S.phase==="over"){ restartGame(); return; }
+  openCard(`<span class="kind">Reiniciar</span>
+    <h3>Recomeçar a partida?</h3>
+    <p>Todos voltam para Ur dos Caldeus e as estrelas são zeradas. Os jogadores continuam os mesmos.</p>
+    <div class="btn-row">
+      <button type="button" id="noRst">Continuar jogando</button>
+      <button type="button" class="primary" id="yesRst">Reiniciar</button>
+    </div>`, "var(--star)");
+  $("#noRst").onclick=closeCard;
+  $("#yesRst").onclick=()=>{ closeCard(); restartGame(); };
 }
 
 /* ---------- Novo jogo ---------- */
@@ -453,6 +497,7 @@ function start(data){
   matchMedia("(max-width:560px)").addEventListener("change", renderBoard);
   $("#rollBtn").onclick=roll;
   $("#newBtn").onclick=showSetup;
+  $("#restartBtn").onclick=askRestart;
   $("#soundBtn").onclick=e=>{ soundOn=!soundOn; e.target.textContent="Som: "+(soundOn?"ligado":"desligado"); e.target.setAttribute("aria-pressed",soundOn); beep(600,.08); };
 }
 start({});
