@@ -16,6 +16,7 @@ Jogo de trilha bíblico sobre **Gênesis 12–50**. Os jogadores partem de Ur do
   - voltar: a fome (Gn 12), o guisado de Esaú (Gn 25), José vendido (Gn 37)
   - perder a vez: Agar (Gn 16), Labão (Gn 29), a prisão de José (Gn 39)
   - ganhar estrelas: a promessa das estrelas (Gn 15), a luta no Jaboque (Gn 32)
+  - o cartão mostra de qual casa para qual casa a peça anda, e a casa de chegada pisca. **A casa onde você chegar por avanço ou recuo não é ativada.**
 - Quem chega primeiro a Gósen ganha +3 ★ e encerra a jornada. **Vence quem tiver mais estrelas.**
 - **Reiniciar** recomeça com os mesmos jogadores; **Novo jogo** permite trocar nomes e quantidade. Todo cartão fecha no **×** ou com a tecla **Esc**.
 

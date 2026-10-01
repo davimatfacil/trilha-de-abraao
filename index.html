@@ -66,6 +66,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .tok{width:14px;height:14px;border-radius:50%;background:var(--c);border:2px solid var(--night);box-shadow:0 0 0 1px var(--c)}
 .tok.active{animation:pulse 1s ease-in-out infinite}
 @keyframes pulse{50%{transform:scale(1.25)}}
+.cell.flash{animation:flash 1.4s ease-out}
+@keyframes flash{0%,60%{background:color-mix(in srgb,var(--star) 45%,var(--night-2));outline:2px solid var(--star);outline-offset:-2px}}
 @media (max-width:560px){.cell .lbl{font-size:.62rem}.cell.q .lbl{font-size:.9rem}.tok{width:10px;height:10px}}
 
 aside{display:flex;flex-direction:column;gap:14px}
@@ -337,13 +339,20 @@ async function roll(){
   await walk(p, v);
   land(p);
 }
+function flashCell(i){
+  const c=document.querySelectorAll(".cell")[i];           // as casas são criadas na ordem 0..LAST
+  if(!c) return;
+  c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash");
+  c.addEventListener("animationend",()=>c.classList.remove("flash"),{once:true});
+}
 async function walk(p, steps){
   const dir = Math.sign(steps);
   for(let k=0;k<Math.abs(steps);k++){
     const n = p.pos + dir;
     if(n<0 || n>LAST) break;
-    p.pos = n; render(); beep(dir>0?520:260,.06); await sleep(220);
+    p.pos = n; render(); beep(dir>0?520:260,.06); await sleep(dir>0?220:320);   // recuo um pouco mais lento
   }
+  flashCell(p.pos);
 }
 function land(p){
   if(p.pos===LAST) return finish(p);
@@ -394,8 +403,12 @@ function showQuestion(p, era){
     const g=$("#goOn"); g.hidden=false; g.focus(); g.onclick=done;
   });
 }
-function effectText(ev){
-  if(ev.move) return ev.move>0 ? `Avance ${ev.move} casas.` : `Volte ${-ev.move} casas.`;
+function destOf(pos, move){ return Math.max(0, Math.min(LAST, pos+move)); }
+function effectText(ev, pos){
+  if(ev.move){
+    const n = Math.abs(ev.move), d = destOf(pos, ev.move);
+    return `${ev.move>0?"Avance":"Volte"} ${n} casa${n>1?"s":""}: da casa ${pos} para a casa ${d}.`;
+  }
   if(ev.stars) return `Ganhe ${ev.stars} estrela${ev.stars>1?"s":""}.`;
   if(ev.skip) return "Perca a próxima jogada.";
   return "";
@@ -404,14 +417,14 @@ function showEvent(p, ev){
   S.phase="card"; renderPanel();
   openCard(`<span class="kind">Episódio · ${ev.ref}</span>
     <h3>${esc(ev.title)}</h3><p>${esc(ev.text)}</p>
-    <p class="effect">${effectText(ev)}</p>
+    <p class="effect">${effectText(ev, p.pos)}</p>${ev.move?`<p class="ref">A casa onde você chegar não é ativada.</p>`:""}
     <button type="button" class="primary" id="goOn">Continuar</button>`, ERAS[eraOf(p.pos)].color, ()=>apply());
   // fechar pelo X também aplica o efeito: o episódio faz parte da regra
   let applied=false;
   const apply = async ()=>{
     if(applied) return; applied=true;
     closeCard();
-    log(`${p.name}: ${ev.title} (${ev.ref}). ${effectText(ev)}`);
+    log(`${p.name}: ${ev.title} (${ev.ref}). ${effectText(ev, p.pos)}`);
     if(ev.stars){ p.stars+=ev.stars; beep(880,.15); }
     if(ev.skip){ p.skip=true; }
     if(ev.move){ S.phase="moving"; await walk(p, ev.move); if(p.pos===LAST) return finish(p); }
