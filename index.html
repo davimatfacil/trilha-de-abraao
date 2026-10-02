@@ -40,7 +40,10 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 h1{font-family:var(--display);font-weight:700;font-size:clamp(2rem,5vw,3.2rem);line-height:1;margin:0;letter-spacing:.02em;text-wrap:balance}
 h1 span{color:var(--star)}
 .sub{margin:.35rem 0 0;color:var(--muted);font-size:1rem}
-.hdr-actions{display:flex;gap:8px}
+.hdr-actions{display:flex;flex-wrap:wrap;gap:8px}
+a.btn{display:inline-flex;align-items:center;font-family:var(--body);font-size:.95rem;border-radius:8px;border:1px solid var(--night-3);background:var(--night-2);color:var(--ink);padding:8px 14px;text-decoration:none}
+a.btn:hover{border-color:var(--sand)}
+a.btn:focus-visible{outline:2px solid var(--star);outline-offset:2px}
 button{font-family:var(--body);font-size:.95rem;cursor:pointer;border-radius:8px;border:1px solid var(--night-3);background:var(--night-2);color:var(--ink);padding:8px 14px}
 button:hover{border-color:var(--sand)}
 button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--star);outline-offset:2px}
@@ -133,6 +136,7 @@ aside{display:flex;flex-direction:column;gap:14px}
       <p class="sub">Gênesis 12–50 · de Ur dos Caldeus até a terra de Gósen</p>
     </div>
     <div class="hdr-actions">
+      <a class="btn" href="contato.html">Contato</a>
       <button id="soundBtn" type="button" aria-pressed="false">Som: desligado</button>
       <button id="restartBtn" type="button">Reiniciar</button>
       <button id="newBtn" type="button">Novo jogo</button>

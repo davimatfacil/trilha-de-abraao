@@ -56,4 +56,6 @@ Davi · Matemático e estatístico. Projeto pessoal para ensino bíblico com tec
 
 Referências bíblicas conferidas em Gênesis. As citações são curtas e servem apenas para indicar a leitura.
 
+Contato: página `contato.html` (formulário via [Web3Forms](https://web3forms.com/), sem servidor próprio).
+
 Código-fonte: https://github.com/davimatfacil/trilha-de-abraao · Licença: [MIT](LICENSE)
